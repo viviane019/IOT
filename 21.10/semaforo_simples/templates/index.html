@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semáforo </title>
+    <style>
+        /* Estilos Básicos do Painel */
+        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; background-color: #f0f0f0; }
+        .container { 
+            max-width: 350px; 
+            margin: auto; 
+            padding: 20px; 
+            border: 1px solid #ccc; 
+            border-radius: 10px; 
+            background-color: #fff; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+        }
+        .bloco { 
+            margin-bottom: 25px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            background-color: #fafafa; 
+            border: 1px solid #eee; 
+        }
+        .bloco h2 { 
+            border-bottom: 2px solid #ddd; 
+            padding-bottom: 8px; 
+            margin-bottom: 15px; 
+            color: #333; 
+        }
+
+        /* Estilos do Botão */
+        button { 
+            font-size: 1em; 
+            padding: 10px 15px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border-radius: 5px; 
+            border: none; 
+            color: white; 
+            transition: background-color 0.2s;
+        }
+        .on { background-color: #28a745; }
+        .off { background-color: #dc3545; }
+        
+        /* Estilos de Status e Display */
+        .semaforo-status {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #dc3545;
+            margin-top: 10px;
+            min-height: 1.2em; /* Garante que o texto ocupe espaço mesmo vazio */
+        }
+
+        /* --- Estilos para o Semáforo (LEDs Neon Redondos) --- */
+        .led-group {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 15px 0;
+            background-color: #1a1a1a; /* Fundo mais escuro para o efeito neon */
+            border-radius: 5px;
+            margin: 15px auto;
+            width: 90%;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+        }
+
+        /* O corpo do LED */
+        .led-body {
+            width: 35px; 
+            height: 35px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #333, #000); 
+            position: relative;
+            z-index: 2;
+            transition: all 0.2s ease-in-out;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.9);
+        }
+
+        /* Efeito Neon Principal */
+        .led-body.on::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            opacity: 1;
+            transition: opacity 0.2s;
+            z-index: 3;
+        }
+
+        /* Cores Neon */
+        .vermelho.on {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.9), rgba(150, 0, 0, 0.7));
+            box-shadow: 0 0 8px rgba(255,0,0,0.8), inset 0 0 5px rgba(255,0,0,0.6);
+        }
+        .vermelho.on::before {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 1), rgba(255, 0, 0, 0.5));
+            box-shadow: 0 0 20px red, 0 0 40px red, 0 0 60px rgba(255,0,0,0.6);
+        }
+
+        .amarelo.on {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 0, 0.9), rgba(150, 150, 0, 0.7));
+            box-shadow: 0 0 8px rgba(255,255,0,0.8), inset 0 0 5px rgba(255,255,0,0.6);
+        }
+        .amarelo.on::before {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 0, 1), rgba(255, 255, 0, 0.5));
+            box-shadow: 0 0 20px yellow, 0 0 40px yellow, 0 0 60px rgba(255,255,0,0.6);
+        }
+
+        .verde.on {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 0.9), rgba(0, 150, 0, 0.7));
+            box-shadow: 0 0 8px rgba(0,255,0,0.8), inset 0 0 5px rgba(0,255,0,0.6);
+        }
+        .verde.on::before {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 1), rgba(0, 255, 0, 0.5));
+            box-shadow: 0 0 20px limegreen, 0 0 40px limegreen, 0 0 60px rgba(0,255,0,0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulação de Semáforo Arduino</h1>
+
+        <div class="bloco">
+            <h2>Ciclo do Semáforo</h2>
+            
+            <div class="led-group">
+                <div id="ledVermelho" class="led-body vermelho"></div>
+                <div id="ledAmarelo" class="led-body amarelo"></div>
+                <div id="ledVerde" class="led-body verde"></div>
+            </div>
+
+            <p>Estado Atual: <span id="statusSemaforo" class="semaforo-status"></span></p>
+            
+            <button id="btnToggle" class="off" onclick="toggleSemaforo()">Parar Simulação</button>
+        </div>
+    </div>
+
+    <script>
+        const ledVermelho = document.getElementById('ledVermelho');
+        const ledAmarelo = document.getElementById('ledAmarelo');
+        const ledVerde = document.getElementById('ledVerde');
+        const statusDisplay = document.getElementById('statusSemaforo');
+        const btnToggle = document.getElementById('btnToggle');
+
+        // Tempos baseados no seu código Arduino (em milissegundos)
+        const tempos = {
+            vermelho: 5000, 
+            amarelo: 2000,
+            verde: 5000
+        };
+
+        let cicloTimeout;
+        let isRunning = false;
+
+        function apagarTodas() {
+            ledVermelho.classList.remove('on');
+            ledAmarelo.classList.remove('on');
+            ledVerde.classList.remove('on');
+        }
+
+        function cicloSemaforo(estado = 'vermelho') {
+            if (!isRunning) return; 
+
+            apagarTodas();
+
+            switch (estado) {
+                case 'vermelho':
+                    ledVermelho.classList.add('on');
+                    statusDisplay.innerText = `PARAR (${tempos.vermelho / 1000}s)`;
+                    statusDisplay.style.color = '#dc3545'; // Vermelho
+                    cicloTimeout = setTimeout(() => {
+                        cicloSemaforo('amarelo');
+                    }, tempos.vermelho);
+                    break;
+
+                case 'amarelo':
+                    ledAmarelo.classList.add('on');
+                    statusDisplay.innerText = `ATENÇÃO (${tempos.amarelo / 1000}s)`;
+                    statusDisplay.style.color = '#ffc107'; // Amarelo
+                    cicloTimeout = setTimeout(() => {
+                        cicloSemaforo('verde');
+                    }, tempos.amarelo);
+                    break;
+                
+                case 'verde':
+                    ledVerde.classList.add('on');
+                    statusDisplay.innerText = `SEGUIR (${tempos.verde / 1000}s)`;
+                    statusDisplay.style.color = '#28a745'; // Verde
+                    cicloTimeout = setTimeout(() => {
+                        cicloSemaforo('vermelho'); // Reinicia o loop
+                    }, tempos.verde);
+                    break;
+            }
+        }
+
+        function toggleSemaforo() {
+            isRunning = !isRunning;
+            if (isRunning) {
+                btnToggle.innerText = 'Parar Simulação';
+                btnToggle.classList.remove('on');
+                btnToggle.classList.add('off');
+                cicloSemaforo('vermelho'); // Inicia a partir do vermelho
+            } else {
+                clearTimeout(cicloTimeout); // Para o timer
+                apagarTodas();
+                btnToggle.innerText = 'Iniciar Simulação';
+                btnToggle.classList.remove('off');
+                btnToggle.classList.add('on');
+                statusDisplay.innerText = 'PARADA';
+                statusDisplay.style.color = '#6c757d';
+            }
+        }
+
+        // Inicia a simulação automaticamente ao carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleSemaforo(); 
+        });
+
+    </script>
+</body>
+</html>
